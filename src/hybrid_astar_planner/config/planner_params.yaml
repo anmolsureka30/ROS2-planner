@@ -1,0 +1,62 @@
+# Hybrid A* Planner - Default Parameters
+# All values are configurable at runtime via ROS2 parameters
+
+planner_server:
+  ros__parameters:
+    planner_plugins: ["HybridAStar"]
+
+    HybridAStar:
+      plugin: "hybrid_astar_planner::HybridAStarPlanner"
+
+      # Vehicle dimensions (meters)
+      # Default: small-scale Ackermann robot (~30cm x 20cm)
+      # Change these to match your actual vehicle
+      vehicle:
+        wheelbase: 0.18
+        length: 0.30
+        width: 0.20
+        rear_axle_to_back: 0.06
+        max_steering_angle: 30.0    # degrees
+
+      # Motion primitive generation
+      motion:
+        step_size: 0.05             # meters per motion step
+        num_steering_angles: 5      # generates [-max, ..., 0, ..., +max]
+        allow_reverse: true
+
+      # Search space discretization
+      search:
+        xy_resolution: 0.05        # meters (grid cell size for closed set)
+        theta_resolution: 5.0      # degrees (72 heading bins)
+        shot_distance: 1.5         # meters (max distance for RS shot attempts)
+        max_iterations: 100000
+        timeout: 5.0               # seconds
+
+      # Cost function weights (Smac Planner formulation)
+      cost:
+        steering_penalty: 1.5          # penalty for steering magnitude
+        reversing_penalty: 2.0         # multiplier for reverse motion
+        steering_change_penalty: 1.5   # penalty for changing steering angle
+        direction_switch_penalty: 10.0 # additive penalty for forward<->reverse
+        non_straight_penalty: 0.03     # beta: penalty for any curved motion
+        change_direction_penalty: 0.05 # gamma: penalty for steering sign reversal
+        cost_penalty_alpha: 1.5        # alpha: obstacle proximity cost weight
+
+      # Heuristic configuration
+      heuristic:
+        type: "max"                 # euclidean | reeds_shepp | dijkstra | max
+        cost_alpha: 1.0            # cost-aware weight in 2D Dijkstra
+
+      # Goal tolerance
+      goal:
+        xy_tolerance: 0.02         # meters
+        theta_tolerance: 5.0       # degrees
+
+      # Path smoother
+      smoother:
+        enabled: true
+        w_smooth: 0.4              # smoothness weight
+        w_obstacle: 0.3            # obstacle avoidance weight
+        w_original: 0.3            # original path fidelity weight
+        obstacle_margin: 0.15      # meters
+        max_iterations: 200
