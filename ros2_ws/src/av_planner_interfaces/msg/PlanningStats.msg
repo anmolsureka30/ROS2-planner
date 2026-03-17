@@ -1,0 +1,5 @@
+std_msgs/Header header
+float64 search_time
+float64 path_length
+int32 nodes_expanded
+bool analytical_expansion

@@ -1,0 +1,54 @@
+planner_node:
+  ros__parameters:
+    # Frame ID for all published messages
+    frame_id: "map"
+
+    # Path to hybrid_astar_planner project root (for core algorithm imports)
+    # IMPORTANT: Set this to the absolute path of the repo root on your machine
+    project_root: ""
+
+    # Vehicle parameters
+    vehicle:
+      wheel_base: 2.5       # meters
+      length: 4.5            # meters
+      width: 2.0             # meters
+      rear_axle_to_back: 1.0 # meters
+
+    # Motion model
+    motion:
+      max_steering_angle: 40.0   # degrees
+      step_size: 2.0             # meters
+      num_steering_angles: 5     # [-40, -20, 0, +20, +40]
+      allow_reverse: true
+
+    # Search parameters
+    search:
+      xy_resolution: 1.0        # meters (grid cell size)
+      theta_resolution: 5.0     # degrees (72 heading bins)
+      shot_distance: 30.0       # meters (Reeds-Shepp shot range)
+      max_iterations: 200000
+
+    # Cost penalties (Dolgov et al. 2010)
+    cost:
+      steering_penalty: 1.5
+      reversing_penalty: 2.0
+      steering_change_penalty: 1.5
+      direction_switch_penalty: 10.0
+
+    # Heuristic: h = max(Reeds-Shepp distance, cost-aware 2D Dijkstra)
+    heuristic:
+      type: "max"
+      turning_radius: 2.98      # meters
+      cost_alpha: 1.0
+
+    # Map adapter settings
+    map:
+      obstacle_threshold: 50    # OccupancyGrid values >= this are obstacles
+
+mock_map_node:
+  ros__parameters:
+    # IMPORTANT: Set this to the absolute path of the map PNG on your machine
+    map_image_path: ""
+    resolution: 0.5             # meters per pixel
+    obstacle_threshold: 128     # PNG pixel values below this are obstacles
+    publish_rate: 0.1           # Hz (republish every 10s as heartbeat)

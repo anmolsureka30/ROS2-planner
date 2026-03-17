@@ -1,0 +1,95 @@
+# Hybrid A* Configuration - Corrected & Improved
+# Based on Smac Planner (Macenski et al., 2025) and Meng et al. (2023)
+
+# Map settings
+map:
+  path: "maps/map_open.png"
+  resolution: 0.5
+  obstacle_threshold: 128
+
+# Vehicle parameters
+vehicle:
+  wheel_base: 2.5
+  length: 4.5
+  width: 2.0
+  rear_axle_to_back: 1.0
+
+# Motion model settings
+motion:
+  max_steering_angle: 40.0
+  step_size: 2.0
+  num_steering_angles: 5  # [-40, -20, 0, +20, +40] degrees
+  allow_reverse: true
+
+# Search parameters
+search:
+  xy_resolution: 1.0
+  theta_resolution: 5.0  # 72 heading bins
+  shot_distance: 30.0
+  max_iterations: 200000
+
+# Cost parameters (Dolgov et al. 2010)
+cost:
+  steering_penalty: 1.5        # Proportional to steering magnitude
+  reversing_penalty: 2.0       # Multiplier for reverse motion
+  steering_change_penalty: 1.5 # Cost for steering angle change
+  direction_switch_penalty: 10.0  # Penalty for forward<->reverse switch
+
+# Heuristic settings
+heuristic:
+  type: "max"  # max(Reeds-Shepp, Cost-Aware 2D Dijkstra) - tightest admissible
+  turning_radius: 2.98
+  cost_alpha: 1.0  # Cost-awareness in 2D heuristic
+
+# Goal tolerance
+goal:
+  xy_tolerance: 0.3
+  theta_tolerance: 5.0
+
+# Visualization
+visualization:
+  show_vehicle: true
+  vehicle_interval: 10
+  save_results: true
+  results_dir: "results"
+
+# Algorithm selection
+# Options: hybrid_astar, rrt_star, informed_rrt_star, bi_rrt_star, bit_star
+algorithm:
+  type: "hybrid_astar"
+
+# RRT* parameters
+rrt_star:
+  max_iterations: 10000
+  step_size: 2.0           # steer step size (meters)
+  goal_radius: 2.0         # goal region radius (meters)
+  goal_bias: 0.05          # probability of sampling goal
+  gamma: 20.0              # RGG constant for rewiring radius
+  dimension: 2             # state space dimension
+
+# Informed RRT* parameters
+informed_rrt_star:
+  max_iterations: 10000
+  step_size: 2.0
+  goal_radius: 2.0
+  goal_bias: 0.05
+  gamma: 20.0
+  dimension: 2
+
+# BI-RRT* parameters
+bi_rrt_star:
+  max_bidir_iterations: 5000   # iterations for bidirectional search
+  max_opt_iterations: 5000     # iterations for informed optimization
+  step_size: 2.0
+  goal_radius: 2.0
+  gamma: 20.0
+  dimension: 2
+
+# BIT* parameters
+bit_star:
+  batch_size: 100          # samples per batch
+  max_iterations: 200      # max batches
+  eta: 1.1                 # RGG tuning parameter
+  prune_threshold: 0.01    # prune when cost improves >1%
+  goal_radius: 2.0
+  dimension: 2
