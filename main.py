@@ -22,8 +22,7 @@ from src.hybrid_astar.visualizer import Visualizer
 from src.rrt_star.rrt_star import RRTStarPlanner
 from src.rrt_star.informed_rrt_star import InformedRRTStarPlanner
 from src.rrt_star.bi_rrt_star import BIRRTStarPlanner
-from src.rrt_star.bit_star import BITStarPlanner
-from src.rrt_star.rrt_visualizer import RRTVisualizer
+from scripts.rrt_visualizer import RRTVisualizer
 
 
 def load_config(config_path: str = "config/planner_config.yaml") -> Dict:
@@ -90,8 +89,7 @@ ALGORITHM_NAMES = {
     '2': 'rrt_star',
     '3': 'informed_rrt_star',
     '4': 'bi_rrt_star',
-    '5': 'bit_star',
-    '6': 'compare_all',
+    '5': 'compare_all',
 }
 
 
@@ -104,11 +102,10 @@ def select_algorithm() -> str:
     print("2. RRT* (sampling-based, asymptotically optimal)")
     print("3. Informed RRT* (ellipsoidal focused sampling)")
     print("4. BI-RRT* (bidirectional + pruning + informed)")
-    print("5. BIT* (batch informed trees, heuristic search)")
-    print("6. Compare ALL RRT* variants")
+    print("5. Compare ALL RRT* variants")
 
     while True:
-        choice = input("\nEnter choice [1-6] (default 1): ").strip()
+        choice = input("\nEnter choice [1-5] (default 1): ").strip()
         if not choice:
             return 'hybrid_astar'
         if choice in ALGORITHM_NAMES:
@@ -148,7 +145,6 @@ def create_rrt_planner(algorithm: str, map_handler: MapHandler, config: Dict):
         'rrt_star': RRTStarPlanner,
         'informed_rrt_star': InformedRRTStarPlanner,
         'bi_rrt_star': BIRRTStarPlanner,
-        'bit_star': BITStarPlanner,
     }
     cls = planners.get(algorithm)
     if cls is None:
@@ -333,7 +329,7 @@ def interactive_mode():
             if algorithm == 'compare_all':
                 # Run all RRT* variants and compare
                 rrt_algorithms = ['rrt_star', 'informed_rrt_star',
-                                   'bi_rrt_star', 'bit_star']
+                                   'bi_rrt_star']
                 results = {}
                 for alg in rrt_algorithms:
                     print(f"\nRunning {alg}...")

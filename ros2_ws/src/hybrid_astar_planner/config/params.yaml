@@ -4,8 +4,7 @@ planner_node:
     frame_id: "map"
 
     # Path to hybrid_astar_planner project root (for core algorithm imports)
-    # IMPORTANT: Set this to the absolute path of the repo root on your machine
-    project_root: ""
+    project_root: "/Users/anmolsureka/Documents/hybrid_astar_planner"
 
     # Vehicle parameters
     vehicle:
@@ -47,8 +46,7 @@ planner_node:
 
 mock_map_node:
   ros__parameters:
-    # IMPORTANT: Set this to the absolute path of the map PNG on your machine
-    map_image_path: ""
+    map_image_path: "/Users/anmolsureka/Documents/hybrid_astar_planner/maps/map_open.png"
     resolution: 0.5             # meters per pixel
     obstacle_threshold: 128     # PNG pixel values below this are obstacles
     publish_rate: 0.1           # Hz (republish every 10s as heartbeat)

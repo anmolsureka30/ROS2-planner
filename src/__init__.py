@@ -20,7 +20,6 @@ from .rrt_star import (
     RRTStarPlanner,
     InformedRRTStarPlanner,
     BIRRTStarPlanner,
-    BITStarPlanner,
 )
 
 __all__ = [
@@ -36,7 +35,6 @@ __all__ = [
     'RRTStarPlanner',
     'InformedRRTStarPlanner',
     'BIRRTStarPlanner',
-    'BITStarPlanner',
 ]
 
 __version__ = '1.0.0'

@@ -1,13 +1,13 @@
-# Colcon build artifacts
-ros2_ws/build/
-ros2_ws/install/
-ros2_ws/log/
-
-# Python cache
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.egg-info/
+
+# ROS 2 build artifacts
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
 
 # IDE
 .vscode/
@@ -20,18 +20,13 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# LaTeX build artifacts
-*.aux
-*.log
-*.out
-*.toc
-*.fls
-*.fdb_latexmk
-*.synctex.gz
+# Virtual environment
+venv/
+.env/
 
-# Temporary files
+# Results (generated at runtime)
+results/
+
+# Temporary
 /tmp/
 *.bag
-
-# Results (generated)
-results/

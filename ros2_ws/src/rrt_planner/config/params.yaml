@@ -1,0 +1,34 @@
+# RRT* Planner Node — ROS 2 Parameters
+# All parameters mirror config/planner_config.yaml from the core project
+
+rrt_planner_node:
+  ros__parameters:
+    frame_id: "map"
+    project_root: "/Users/anmolsureka/Documents/hybrid_astar_planner"
+
+    # Algorithm: rrt_star | informed_rrt_star | bi_rrt_star
+    algorithm: "rrt_star"
+
+    # Shared RRT* parameters
+    max_iterations: 10000      # sampling iterations
+    step_size: 2.0             # steer distance (meters)
+    goal_radius: 5.0           # goal region radius (meters)
+    goal_bias: 0.10            # probability of sampling goal
+    gamma: 20.0                # RGG constant for rewiring radius
+    dimension: 2               # state space dimension
+
+    # BI-RRT* specific
+    max_bidir_iterations: 5000 # Phase 1 bidirectional search
+    max_opt_iterations: 5000   # Phase 3 informed optimization
+    safety_margin: 0.0         # obstacle inflation (vehicle.width/2 for real robot)
+
+    # Map processing
+    obstacle_threshold: 50     # OccupancyGrid values >= this are obstacles
+
+# Mock map node (from planner_common)
+mock_map_node:
+  ros__parameters:
+    map_image_path: "/Users/anmolsureka/Documents/hybrid_astar_planner/maps/map_open.png"
+    resolution: 0.5
+    obstacle_threshold: 128
+    publish_rate: 0.1

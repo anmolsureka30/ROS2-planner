@@ -1,25 +1,24 @@
 <launch>
-  <arg name="params_file" default="$(find-pkg-share av_planner)/config/params.yaml"/>
+  <arg name="params_file" default="$(find-pkg-share hybrid_astar_planner)/config/params.yaml"/>
   <arg name="use_mock_map" default="true"/>
 
-  <!-- Mock map publisher (for standalone testing without perception) -->
+  <!-- Mock map publisher (from planner_common) -->
   <group if="$(var use_mock_map)">
-    <node pkg="av_planner" exec="mock_map_node" name="mock_map_node" output="screen">
+    <node pkg="planner_common" exec="mock_map_node" name="mock_map_node" output="screen">
       <param from="$(var params_file)"/>
     </node>
   </group>
 
   <!-- Hybrid A* planner lifecycle node -->
-  <node pkg="av_planner" exec="planner_node" name="planner_node" output="screen">
+  <node pkg="hybrid_astar_planner" exec="hybrid_astar_node" name="hybrid_astar_node" output="screen">
     <param from="$(var params_file)"/>
   </node>
 
   <!--
-    After launch, transition the lifecycle node:
-      ros2 lifecycle set /planner_node configure
-      ros2 lifecycle set /planner_node activate
+    After launch:
+      ros2 lifecycle set /hybrid_astar_node configure
+      ros2 lifecycle set /hybrid_astar_node activate
 
-    Then send a planning request:
       ros2 action send_goal /plan_path av_planner_interfaces/action/PlanPath \
         "{start: {pose: {position: {x: 10.0, y: 50.0}, orientation: {w: 1.0}}}, \
           goal: {pose: {position: {x: 90.0, y: 50.0}, orientation: {w: 1.0}}}}"

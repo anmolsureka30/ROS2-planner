@@ -62,8 +62,8 @@ algorithm:
 rrt_star:
   max_iterations: 10000
   step_size: 2.0           # steer step size (meters)
-  goal_radius: 2.0         # goal region radius (meters)
-  goal_bias: 0.05          # probability of sampling goal
+  goal_radius: 5.0         # goal region radius (meters) — larger = more goal nodes = more improvement
+  goal_bias: 0.10          # probability of sampling goal (10% biases search toward goal)
   gamma: 20.0              # RGG constant for rewiring radius
   dimension: 2             # state space dimension
 
@@ -71,8 +71,8 @@ rrt_star:
 informed_rrt_star:
   max_iterations: 10000
   step_size: 2.0
-  goal_radius: 2.0
-  goal_bias: 0.05
+  goal_radius: 5.0
+  goal_bias: 0.10
   gamma: 20.0
   dimension: 2
 
@@ -81,15 +81,12 @@ bi_rrt_star:
   max_bidir_iterations: 5000   # iterations for bidirectional search
   max_opt_iterations: 5000     # iterations for informed optimization
   step_size: 2.0
-  goal_radius: 2.0
+  goal_radius: 5.0
   gamma: 20.0
   dimension: 2
+  # Stage 1 (Fan et al.): obstacle inflation for point-robot equivalence
+  # Set to vehicle.width/2 for real robots (e.g. 1.0 for 2.0m wide vehicle)
+  # Set to 0 for simulation maps with thin border obstacles
+  # If omitted, defaults to vehicle.width / 2
+  safety_margin: 0.0
 
-# BIT* parameters
-bit_star:
-  batch_size: 100          # samples per batch
-  max_iterations: 200      # max batches
-  eta: 1.1                 # RGG tuning parameter
-  prune_threshold: 0.01    # prune when cost improves >1%
-  goal_radius: 2.0
-  dimension: 2

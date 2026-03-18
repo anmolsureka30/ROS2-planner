@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-package_name = 'av_planner'
+package_name = 'hybrid_astar_planner'
 
 setup(
     name=package_name,
@@ -20,8 +20,7 @@ setup(
     license='Apache-2.0',
     entry_points={
         'console_scripts': [
-            'planner_node = av_planner.nodes.planner_node:main',
-            'mock_map_node = av_planner.nodes.mock_map_node:main',
+            'hybrid_astar_node = hybrid_astar_planner.nodes.planner_node:main',
         ],
     },
 )

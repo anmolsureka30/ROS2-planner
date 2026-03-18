@@ -22,8 +22,8 @@ from geometry_msgs.msg import PoseStamped
 from av_planner_interfaces.msg import PlanningStats
 from av_planner_interfaces.action import PlanPath
 
-from av_planner.adapters.map_adapter import MapAdapter
-from av_planner.adapters.converters import (
+from planner_common.adapters.map_adapter import MapAdapter
+from planner_common.adapters.converters import (
     pose_to_state, states_to_path, yaw_from_quaternion
 )
 

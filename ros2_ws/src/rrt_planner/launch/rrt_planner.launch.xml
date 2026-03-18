@@ -1,0 +1,30 @@
+<launch>
+  <arg name="params_file" default="$(find-pkg-share rrt_planner)/config/params.yaml"/>
+  <arg name="use_mock_map" default="true"/>
+
+  <!-- Mock map publisher (from planner_common) -->
+  <group if="$(var use_mock_map)">
+    <node pkg="planner_common" exec="mock_map_node" name="mock_map_node" output="screen">
+      <param from="$(var params_file)"/>
+    </node>
+  </group>
+
+  <!-- RRT* planner lifecycle node -->
+  <node pkg="rrt_planner" exec="rrt_planner_node" name="rrt_planner_node" output="screen">
+    <param from="$(var params_file)"/>
+  </node>
+
+  <!--
+    After launch:
+      ros2 lifecycle set /rrt_planner_node configure
+      ros2 lifecycle set /rrt_planner_node activate
+
+      ros2 action send_goal /plan_path av_planner_interfaces/action/PlanPath \
+        "{start: {pose: {position: {x: 10.0, y: 10.0}, orientation: {w: 1.0}}},
+          goal: {pose: {position: {x: 80.0, y: 80.0}, orientation: {z: 0.38, w: 0.92}}}}"
+
+    Switch algorithm without restart:
+      ros2 param set /rrt_planner_node algorithm informed_rrt_star
+      ros2 param set /rrt_planner_node algorithm bi_rrt_star
+  -->
+</launch>

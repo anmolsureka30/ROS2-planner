@@ -275,9 +275,6 @@ def save_results_csv(results, csv_path):
         'search_time', 'search_time_std',
         'path_length', 'path_length_std',
         'nodes_expanded', 'nodes_expanded_std',
-        'nodes_visited', 'nodes_visited_std',
-        'min_clearance', 'min_clearance_std',
-        'curvature_sum', 'curvature_sum_std',
         'analytical'
     ]
 
@@ -295,7 +292,7 @@ def print_results_table(results):
     try:
         from tabulate import tabulate
         headers = ['Scenario', 'Success', 'Time (s)', 'Path (m)',
-                   'Nodes', 'Clearance (m)', 'Curvature', 'RS Shot']
+                   'Nodes', 'RS Shot']
         rows = []
         for r in results:
             rows.append([
@@ -304,8 +301,6 @@ def print_results_table(results):
                 f"{r['search_time']:.3f}",
                 f"{r['path_length']:.1f}",
                 f"{int(r['nodes_expanded'])}",
-                f"{r['min_clearance']:.2f}",
-                f"{r['curvature_sum']:.2f}",
                 "Yes" if r.get('analytical') else "No"
             ])
         print(f"\n{'='*90}")
