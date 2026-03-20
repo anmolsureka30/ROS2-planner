@@ -1,252 +1,232 @@
-Jetson Setup & Run Guide
-1. Prerequisites (one-time)
+# Jetson Setup & Run Guide
 
-# ── Terminal 1: Install ROS 2 (if not already installed) ──
+Complete guide for running all path planners (Hybrid A*, RRT*, Informed RRT*, BI-RRT*) on Jetson with ROS 2.
 
+---
+
+## 1. Prerequisites (one-time)
+
+```bash
 # Check if ROS 2 is installed
 ros2 --version
 
-# If not installed — Ubuntu 22.04 = Humble, Ubuntu 24.04 = Jazzy
-# For Jetson (Ubuntu 22.04 typically):
-sudo apt update && sudo apt install -y ros-humble-desktop python3-colcon-common-extensions
+# If not installed (Ubuntu 22.04 = Humble):
+sudo apt update && sudo apt install -y ros-humble-desktop python3-colcon-common-extensions python3-tk
 echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
 source ~/.bashrc
 
-# Install Python dependencies for the core algorithms
+# Python dependencies
 pip3 install numpy matplotlib Pillow PyYAML scipy
-2. Clone & Build
+```
 
-# ── Terminal 1: Clone and build ──
+## 2. Clone & Build
 
-# Clone the repo
+```bash
 cd ~
 git clone https://github.com/anmolsureka30/ROS2-planner.git
 cd ROS2-planner
 
-# IMPORTANT: Update config files with YOUR Jetson path
-# Replace the Mac path with your actual path
+# Update config paths to your Jetson
 sed -i 's|/Users/anmolsureka/Documents/hybrid_astar_planner|'$(pwd)'|g' \
     ros2_ws/src/hybrid_astar_planner/config/params.yaml \
     ros2_ws/src/rrt_planner/config/params.yaml
 
-# Verify the paths are correct
+# Verify paths
 grep "project_root\|map_image_path" ros2_ws/src/*/config/params.yaml
 
-# Build the ROS 2 workspace
+# Build
 cd ros2_ws
 colcon build --symlink-install
 source install/setup.bash
-After colcon build, you should see:
+```
 
+Expected output: `Summary: 4 packages finished`
 
-Starting >>> av_planner_interfaces
-Starting >>> planner_common
-Finished <<< av_planner_interfaces
-Starting >>> hybrid_astar_planner
-Starting >>> rrt_planner
-Finished <<< planner_common
-Finished <<< hybrid_astar_planner
-Finished <<< rrt_planner
+---
 
-Summary: 4 packages finished
-3. Run — Hybrid A* Planner (4 terminals)
+## 3. Test Hybrid A* (4 terminals)
 
-# ══════════════════════════════════════════════════
-# TERMINAL 1: Launch planner + mock map
-# ══════════════════════════════════════════════════
-cd ~/ROS2-planner/ros2_ws
-source install/setup.bash
-
+### Terminal 1 — Launch
+```bash
+cd ~/ROS2-planner/ros2_ws && source install/setup.bash
 ros2 launch hybrid_astar_planner planner.launch.xml
+```
 
-# Expected output:
-#   [mock_map_node] Publishing map from .../maps/map_open.png (200x200, res=0.5m)
-#   [hybrid_astar_node] Configuring...
-
-# ══════════════════════════════════════════════════
-# TERMINAL 2: Configure + Activate the lifecycle node
-# ══════════════════════════════════════════════════
+### Terminal 2 — Configure + Activate
+```bash
 source /opt/ros/humble/setup.bash
+cd ~/ROS2-planner/ros2_ws && source install/setup.bash
+ros2 lifecycle set /hybrid_astar_node configure
+ros2 lifecycle set /hybrid_astar_node activate
+```
 
-# Step 1: Configure (loads core imports, creates subscribers/publishers)
-ros2 lifecycle set /planner_node configure
+### Terminal 3 — Visualizer (shows map + path)
+```bash
+source /opt/ros/humble/setup.bash
+cd ~/ROS2-planner/ros2_ws && source install/setup.bash
+ros2 run planner_common path_visualizer_node
+```
 
-# Step 2: Activate (enables planning)
-ros2 lifecycle set /planner_node activate
-
-# Check state
-ros2 lifecycle get /planner_node
-# Expected: "active [3]"
-
-# ══════════════════════════════════════════════════
-# TERMINAL 3: Send a planning request
-# ══════════════════════════════════════════════════
+### Terminal 4 — Send goals
+```bash
 source /opt/ros/humble/setup.bash
 cd ~/ROS2-planner/ros2_ws && source install/setup.bash
 
-# Plan: (10, 50, 0°) → (90, 50, 0°) — straight across open map
+# Straight run: (10,50) -> (90,50)
 ros2 action send_goal /plan_path av_planner_interfaces/action/PlanPath \
-  "{start: {pose: {position: {x: 10.0, y: 50.0, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}, \
-    goal: {pose: {position: {x: 90.0, y: 50.0, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}}" \
+  "{start: {pose: {position: {x: 10.0, y: 50.0, z: 0.0}, orientation: {w: 1.0}}}, \
+    goal: {pose: {position: {x: 90.0, y: 50.0, z: 0.0}, orientation: {w: 1.0}}}}" \
   --feedback
 
-# Expected in Terminal 1:
-#   Planning: (10.0, 50.0, 0°) → (90.0, 50.0, 0°)
-#   Path found: 80.0m, 27 nodes, 0.189s
-
-# More complex: diagonal with heading
+# Diagonal with heading: (10,10) -> (85,85)
 ros2 action send_goal /plan_path av_planner_interfaces/action/PlanPath \
-  "{start: {pose: {position: {x: 10.0, y: 10.0, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}, \
-    goal: {pose: {position: {x: 85.0, y: 85.0, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: 0.38, w: 0.92}}}}" \
+  "{start: {pose: {position: {x: 10.0, y: 10.0, z: 0.0}, orientation: {w: 1.0}}}, \
+    goal: {pose: {position: {x: 85.0, y: 85.0, z: 0.0}, orientation: {z: 0.38, w: 0.92}}}}" \
   --feedback
+```
 
-# ══════════════════════════════════════════════════
-# TERMINAL 4: Monitor topics (verify data flow)
-# ══════════════════════════════════════════════════
-source /opt/ros/humble/setup.bash
+---
+
+## 4. Test RRT* (kill Terminal 1 first with Ctrl+C)
+
+### Terminal 1 — Launch RRT*
+```bash
 cd ~/ROS2-planner/ros2_ws && source install/setup.bash
-
-# List all active topics
-ros2 topic list
-
-# Expected:
-#   /map
-#   /plan_path/_action/feedback
-#   /plan_path/_action/status
-#   /planned_path
-#   /planning_stats
-
-# Watch the planned path output
-ros2 topic echo /planned_path --once
-
-# Watch stats
-ros2 topic echo /planning_stats --once
-
-# Check node graph
-ros2 node list
-#   /mock_map_node
-#   /planner_node
-4. Run — RRT* Planner (same 4-terminal pattern)
-
-# ══════════════════════════════════════════════════
-# TERMINAL 1: Launch RRT* planner
-# ══════════════════════════════════════════════════
-cd ~/ROS2-planner/ros2_ws
-source install/setup.bash
-
-# Default: rrt_star algorithm
 ros2 launch rrt_planner rrt_planner.launch.xml
+```
 
-# ══════════════════════════════════════════════════
-# TERMINAL 2: Configure + Activate
-# ══════════════════════════════════════════════════
-source /opt/ros/humble/setup.bash
-
+### Terminal 2 — Configure + Activate
+```bash
 ros2 lifecycle set /rrt_planner_node configure
 ros2 lifecycle set /rrt_planner_node activate
+```
 
-# ══════════════════════════════════════════════════
-# TERMINAL 3: Send planning request
-# ══════════════════════════════════════════════════
-source /opt/ros/humble/setup.bash
-cd ~/ROS2-planner/ros2_ws && source install/setup.bash
+### Terminal 3 — Visualizer (same command, no change needed)
+```bash
+ros2 run planner_common path_visualizer_node
+```
 
+### Terminal 4 — Send goal
+```bash
 ros2 action send_goal /plan_path av_planner_interfaces/action/PlanPath \
-  "{start: {pose: {position: {x: 10.0, y: 10.0, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}, \
-    goal: {pose: {position: {x: 80.0, y: 80.0, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: 0.38, w: 0.92}}}}" \
+  "{start: {pose: {position: {x: 10.0, y: 10.0, z: 0.0}, orientation: {w: 1.0}}}, \
+    goal: {pose: {position: {x: 80.0, y: 80.0, z: 0.0}, orientation: {z: 0.38, w: 0.92}}}}" \
   --feedback
-5. Switch RRT* Algorithm (live, no restart)
+```
 
-# ── In any terminal ──
-source /opt/ros/humble/setup.bash
+---
 
-# Switch to Informed RRT*
+## 5. Test Informed RRT* (no restart needed)
+
+Switch the algorithm live, then send a new goal:
+
+```bash
+# In any terminal
 ros2 param set /rrt_planner_node algorithm informed_rrt_star
 
-# Switch to BI-RRT*
+# Send goal (Terminal 4)
+ros2 action send_goal /plan_path av_planner_interfaces/action/PlanPath \
+  "{start: {pose: {position: {x: 10.0, y: 10.0, z: 0.0}, orientation: {w: 1.0}}}, \
+    goal: {pose: {position: {x: 80.0, y: 80.0, z: 0.0}, orientation: {z: 0.38, w: 0.92}}}}" \
+  --feedback
+```
+
+---
+
+## 6. Test BI-RRT* (no restart needed)
+
+```bash
+# Switch algorithm
 ros2 param set /rrt_planner_node algorithm bi_rrt_star
 
-# Switch back to RRT*
-ros2 param set /rrt_planner_node algorithm rrt_star
+# Send goal (Terminal 4)
+ros2 action send_goal /plan_path av_planner_interfaces/action/PlanPath \
+  "{start: {pose: {position: {x: 10.0, y: 10.0, z: 0.0}, orientation: {w: 1.0}}}, \
+    goal: {pose: {position: {x: 80.0, y: 80.0, z: 0.0}, orientation: {z: 0.38, w: 0.92}}}}" \
+  --feedback
+```
 
-# Then send another goal — it uses the new algorithm
-6. Change Map (live)
+---
 
-# ── In Terminal 3 ──
-# Kill mock_map_node (Ctrl+C in Terminal 1), then relaunch with different map:
+## 7. Change Map (live)
 
+```bash
+# Kill mock_map_node (Ctrl+C in Terminal 1), then:
 ros2 run planner_common mock_map_node --ros-args \
   -p map_image_path:="$HOME/ROS2-planner/maps/map_warehouse.png" \
   -p resolution:=0.5 \
   -p obstacle_threshold:=128
+```
 
-# The planner auto-rebuilds when it receives the new /map message
-7. Run Standalone (no ROS — matplotlib simulation)
+Available maps: `map_open.png`, `map_maze.png`, `map_maze_gen.png`, `map_parking.png`, `map_warehouse.png`
 
-# ── Single terminal ──
+---
+
+## 8. Standalone Mode (no ROS, matplotlib)
+
+```bash
 cd ~/ROS2-planner
 
-# Interactive Hybrid A* (click start/goal on map)
+# Interactive Hybrid A* (click start/goal)
 python3 main.py
 
-# Benchmark all scenarios
+# Benchmark
 python3 benchmark.py
 
-# RRT* simulation with live tree growth
+# RRT* simulation (live tree growth)
 python3 scripts/rrt_simulation.py --algorithm rrt_star
 python3 scripts/rrt_simulation.py --algorithm informed_rrt_star
 python3 scripts/rrt_simulation.py --algorithm bi_rrt_star
 python3 scripts/rrt_simulation.py --compare
-8. Verify Everything Works (checklist)
+```
 
-# ── Run these in Terminal 4 to verify ──
-source /opt/ros/humble/setup.bash
+---
 
-# 1. Check all 4 packages built
+## 9. Verification Checklist
+
+```bash
+# Check all 4 packages built
 ros2 pkg list | grep -E "av_planner|hybrid_astar|rrt_planner|planner_common"
-# Expected: 4 packages
 
-# 2. Check nodes are running
+# Check nodes running
 ros2 node list
-# Expected: /mock_map_node + /planner_node (or /rrt_planner_node)
 
-# 3. Check lifecycle state
-ros2 lifecycle get /planner_node   # or /rrt_planner_node
-# Expected: "active [3]"
+# Check lifecycle state
+ros2 lifecycle get /hybrid_astar_node   # or /rrt_planner_node
 
-# 4. Check action server is available
-ros2 action list
-# Expected: /plan_path
+# Check action server
+ros2 action list    # should show /plan_path
 
-# 5. Check topics
+# Check topics
 ros2 topic list
-ros2 topic info /map              # Should show 1 publisher
-ros2 topic info /planned_path     # Should show 1 publisher
+ros2 topic echo /planned_path --once
+ros2 topic echo /planning_stats --once
 
-# 6. Check parameters
-ros2 param list /planner_node     # Hybrid A*
-ros2 param list /rrt_planner_node # RRT*
-Architecture — What's Communicating
+# Check parameters
+ros2 param list /rrt_planner_node
+```
 
-┌─────────────────┐    /map (OccupancyGrid)    ┌──────────────────────┐
-│  mock_map_node  │ ──────────────────────────▶ │  planner_node        │
-│  (or perception)│    TRANSIENT_LOCAL QoS      │  (Hybrid A* or RRT*) │
-└─────────────────┘                             └────────┬─────────────┘
-                                                         │
-                    /plan_path (Action)                   │
- ┌──────────┐    ◀─── goal/feedback/result ───▶          │
- │  Client   │                                           │
- │ (you/ctrl)│                                 ┌─────────▼───────────┐
- └──────────┘                                  │ /planned_path (Path)│
-                                               │ /planning_stats     │
-                                               └─────────────────────┘
-                                                         │
-                                          ┌──────────────▼──────────────┐
-                                          │  Controller node (future)   │
-                                          │  subscribes to /planned_path│
-                                          └─────────────────────────────┘
-When you connect real perception/controller later, you just:
+---
 
-Replace mock_map_node with your perception node publishing /map
-Have your controller subscribe to /planned_path
-The planner node stays unchanged — true plug-and-play
+## Architecture
+
+```
++------------------+    /map (OccupancyGrid)    +-------------------------+
+|  mock_map_node   | -------------------------> |  hybrid_astar_node      |
+|  (or perception) |    TRANSIENT_LOCAL QoS     |  OR rrt_planner_node    |
++------------------+                            +----------+--------------+
+                                                           |
+                     /plan_path (Action)                   |
+ +----------+     <-- goal/feedback/result -->             |
+ |  Client   |                                  +----------v--------------+
+ | (you/ctrl)|                                  | /planned_path (Path)    |
+ +----------+                                   | /planning_stats         |
+                                                +----------+--------------+
+                                                           |
+ +------------------+                           +----------v--------------+
+ | path_visualizer  | <-- /map, /planned_path   | Controller (future)     |
+ | (matplotlib)     |                           | subscribes /planned_path|
+ +------------------+                           +-------------------------+
+```
+
+Both planners serve the same `/plan_path` action topic -- swap by launching a different planner. The visualizer and any downstream controller work unchanged.
