@@ -1,10 +1,11 @@
-planner_node:
+hybrid_astar_node:
   ros__parameters:
     # Frame ID for all published messages
     frame_id: "map"
 
     # Path to hybrid_astar_planner project root (for core algorithm imports)
-    project_root: "/Users/anmolsureka/Documents/hybrid_astar_planner"
+    # IMPORTANT: Update this to your actual project path on the target machine
+    project_root: "/home/amslab/ROS2-planner"
 
     # Vehicle parameters
     vehicle:
@@ -46,7 +47,8 @@ planner_node:
 
 mock_map_node:
   ros__parameters:
-    map_image_path: "/Users/anmolsureka/Documents/hybrid_astar_planner/maps/map_open.png"
+    # IMPORTANT: Update this to your actual project path on the target machine
+    map_image_path: "/home/amslab/ROS2-planner/maps/map_open.png"
     resolution: 0.5             # meters per pixel
     obstacle_threshold: 128     # PNG pixel values below this are obstacles
     publish_rate: 0.1           # Hz (republish every 10s as heartbeat)

@@ -4,7 +4,8 @@
 rrt_planner_node:
   ros__parameters:
     frame_id: "map"
-    project_root: "/Users/anmolsureka/Documents/hybrid_astar_planner"
+    # IMPORTANT: Update this to your actual project path on the target machine
+    project_root: "/home/amslab/ROS2-planner"
 
     # Algorithm: rrt_star | informed_rrt_star | bi_rrt_star
     algorithm: "rrt_star"
@@ -28,7 +29,8 @@ rrt_planner_node:
 # Mock map node (from planner_common)
 mock_map_node:
   ros__parameters:
-    map_image_path: "/Users/anmolsureka/Documents/hybrid_astar_planner/maps/map_open.png"
+    # IMPORTANT: Update this to your actual project path on the target machine
+    map_image_path: "/home/amslab/ROS2-planner/maps/map_open.png"
     resolution: 0.5
     obstacle_threshold: 128
     publish_rate: 0.1
