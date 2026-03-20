@@ -14,9 +14,10 @@ rrt_planner_node:
     max_iterations: 10000      # sampling iterations
     step_size: 2.0             # steer distance (meters)
     goal_radius: 5.0           # goal region radius (meters)
-    goal_bias: 0.10            # probability of sampling goal
+    goal_bias: 0.15            # probability of sampling goal
     gamma: 20.0                # RGG constant for rewiring radius
     dimension: 2               # state space dimension
+    convergence_patience: 2000 # stop early if no improvement for N iters (0 = disabled)
 
     # BI-RRT* specific
     max_bidir_iterations: 5000 # Phase 1 bidirectional search

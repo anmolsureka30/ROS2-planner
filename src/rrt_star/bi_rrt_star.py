@@ -47,6 +47,8 @@ class BIRRTStarPlanner:
         else:
             vehicle_width = config.get('vehicle', {}).get('width', 0.0)
             self.safety_margin = vehicle_width / 2.0
+        self.convergence_patience = cfg.get('convergence_patience', 2000)
+
         self.collision_checker = CollisionChecker(map_handler, self.safety_margin)
         self.steerer = StraightLineSteerer(self.step_size)
         self.tree: Optional[Tree] = None
@@ -256,6 +258,7 @@ class BIRRTStarPlanner:
         goal_nodes: List[RRTNode] = []
         best_goal_node: Optional[RRTNode] = None
         cost_history: List[float] = []
+        iters_since_improvement = 0
 
         for i in range(1, self.max_opt_iterations + 1):
             new_edge = None
@@ -302,8 +305,9 @@ class BIRRTStarPlanner:
                             x_new.x, x_new.y, goal.x, goal.y):
                         goal_nodes.append(x_new)
 
-            # Re-evaluate best through ALL goal-reaching nodes
-            if goal_nodes:
+            # Re-evaluate best only when a node was added
+            if new_edge is not None and goal_nodes:
+                prev_best = c_best
                 new_best = float('inf')
                 new_best_node = None
                 for gn in goal_nodes:
@@ -315,6 +319,13 @@ class BIRRTStarPlanner:
                     c_best = new_best
                     best_goal_node = new_best_node
 
+                if c_best < prev_best - 1e-6:
+                    iters_since_improvement = 0
+                else:
+                    iters_since_improvement += 1
+            else:
+                iters_since_improvement += 1
+
             cost_history.append(c_best)
 
             if i % 2000 == 0:
@@ -323,6 +334,13 @@ class BIRRTStarPlanner:
 
             if on_iteration is not None:
                 on_iteration(i, self.tree, c_best, new_edge)
+
+            # Early termination if converged
+            if (self.convergence_patience > 0 and
+                    iters_since_improvement >= self.convergence_patience):
+                print(f"    Opt converged at iteration {i} "
+                      f"(no improvement for {self.convergence_patience} iters)")
+                break
 
         if best_goal_node is not None:
             path = self.tree.extract_path(best_goal_node)

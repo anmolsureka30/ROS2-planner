@@ -38,6 +38,7 @@ class RRTStarPlanner:
         self.goal_bias = cfg.get('goal_bias', 0.05)
         self.gamma = cfg.get('gamma', 20.0)
         self.dimension = cfg.get('dimension', 2)
+        self.convergence_patience = cfg.get('convergence_patience', 2000)
 
         self.collision_checker = CollisionChecker(map_handler)
         self.steerer = StraightLineSteerer(self.step_size)
@@ -76,8 +77,11 @@ class RRTStarPlanner:
         best_goal_node: Optional[RRTNode] = None
         cost_history: List[float] = []
         nodes_expanded = 0
+        iters_since_improvement = 0
+        actual_iterations = 0
 
         for i in range(1, self.max_iterations + 1):
+            actual_iterations = i
             new_edge = None
 
             sx, sy = sampler.sample()
@@ -127,9 +131,9 @@ class RRTStarPlanner:
                             x_new.x, x_new.y, goal.x, goal.y):
                         goal_nodes.append(x_new)
 
-            # Re-evaluate best cost through ALL goal-reaching nodes
-            # (their costs may have decreased due to rewiring upstream)
-            if goal_nodes:
+            # Re-evaluate best cost only when a node was added (optimization)
+            if new_edge is not None and goal_nodes:
+                prev_best = best_cost
                 new_best = float('inf')
                 new_best_node = None
                 for gn in goal_nodes:
@@ -140,6 +144,13 @@ class RRTStarPlanner:
                 best_cost = new_best
                 best_goal_node = new_best_node
 
+                if best_cost < prev_best - 1e-6:
+                    iters_since_improvement = 0
+                else:
+                    iters_since_improvement += 1
+            elif best_cost < float('inf'):
+                iters_since_improvement += 1
+
             cost_history.append(best_cost)
 
             if i % 2000 == 0:
@@ -149,6 +160,14 @@ class RRTStarPlanner:
 
             if on_iteration is not None:
                 on_iteration(i, self.tree, best_cost, new_edge)
+
+            # Early termination if converged
+            if (self.convergence_patience > 0 and
+                    iters_since_improvement >= self.convergence_patience and
+                    best_cost < float('inf')):
+                print(f"  RRT* converged at iteration {i} "
+                      f"(no improvement for {self.convergence_patience} iters)")
+                break
 
         search_time = time.time() - t0
 
@@ -169,7 +188,7 @@ class RRTStarPlanner:
             'search_time': search_time,
             'path_length': path_length,
             'nodes_expanded': nodes_expanded,
-            'iterations': self.max_iterations,
+            'iterations': actual_iterations,
             'cost_history': cost_history,
             'tree_size': self.tree.size,
             'algorithm': 'rrt_star',

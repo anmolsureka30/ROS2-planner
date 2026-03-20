@@ -90,9 +90,10 @@ class RRTPlannerNode(LifecycleNode):
         self.declare_parameter('max_iterations', 10000)
         self.declare_parameter('step_size', 2.0)
         self.declare_parameter('goal_radius', 5.0)
-        self.declare_parameter('goal_bias', 0.10)
+        self.declare_parameter('goal_bias', 0.15)
         self.declare_parameter('gamma', 20.0)
         self.declare_parameter('dimension', 2)
+        self.declare_parameter('convergence_patience', 2000)
 
         # BI-RRT* specific
         self.declare_parameter('max_bidir_iterations', 5000)
@@ -196,6 +197,7 @@ class RRTPlannerNode(LifecycleNode):
             'goal_bias': self.get_parameter('goal_bias').value,
             'gamma': self.get_parameter('gamma').value,
             'dimension': self.get_parameter('dimension').value,
+            'convergence_patience': self.get_parameter('convergence_patience').value,
         }
 
         config = {
