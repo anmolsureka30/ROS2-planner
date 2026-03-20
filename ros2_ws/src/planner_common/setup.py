@@ -19,6 +19,7 @@ setup(
     entry_points={
         'console_scripts': [
             'mock_map_node = planner_common.nodes.mock_map_node:main',
+            'path_visualizer_node = planner_common.nodes.path_visualizer_node:main',
         ],
     },
 )
