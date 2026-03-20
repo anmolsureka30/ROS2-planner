@@ -1,335 +1,157 @@
-# Hybrid A* Path Planner
+# Autonomous Vehicle Path Planning System
 
-A complete implementation of the Hybrid A* algorithm for kinematically feasible path planning in obstacle environments.
+A modular path planning system for autonomous vehicles with multiple algorithm families, interactive visualization, and a ROS 2 middleware layer for real-world deployment.
 
-## 📋 Overview
+## Algorithms
 
-This implementation provides a production-ready Hybrid A* path planner with:
+| Algorithm | Type | Key Feature | Optimal |
+|-----------|------|-------------|---------|
+| **Hybrid A*** | Graph-based, lattice search | Non-holonomic, analytical expansion | Resolution-optimal |
+| **RRT*** | Sampling-based, tree search | Rewiring for cost reduction | Asymptotically optimal |
+| **Informed RRT*** | Sampling-based, focused | Ellipsoidal sampling after first solution | Asymptotically optimal |
+| **BI-RRT*** | Sampling-based, bidirectional | Fast initial solution + pruning + optimization | Asymptotically optimal |
 
-- ✅ **Complete SE(2) search**: Plans in (x, y, θ) space
-- ✅ **Vehicle kinematics**: Bicycle model with steering constraints
-- ✅ **Multiple heuristics**: Euclidean, Reeds-Shepp, 2D A*, and max
-- ✅ **Analytical expansion**: Direct shots to goal using Reeds-Shepp paths
-- ✅ **Collision checking**: Full vehicle footprint collision detection
-- ✅ **Configurable parameters**: All parameters adjustable via YAML config
-- ✅ **Visualization tools**: Beautiful plots and animations
-- ✅ **Interactive mode**: Test custom start/goal configurations
-
-## 🗂️ Project Structure
+## Project Structure
 
 ```
-hybrid_astar_planner/
-├── config/
-│   └── planner_config.yaml          # Configuration file
-├── src/
-│   ├── __init__.py
-│   ├── state.py                     # State representation
-│   ├── map_handler.py               # Map loading and processing
-│   ├── motion_model.py              # Vehicle kinematics
-│   ├── reeds_shepp.py               # Analytical path computation
-│   ├── heuristic.py                 # Heuristic calculations
-│   ├── hybrid_astar.py              # Main planner algorithm
-│   └── visualizer.py                # Visualization tools
-├── maps/
-│   └── map_maze.png                 # Obstacle map
-├── results/                         # Output directory
-├── main.py                          # Main execution script
-├── requirements.txt                 # Python dependencies
-└── README.md                        # This file
+src/                                 # Core algorithms (zero ROS dependency)
+  state.py                           # SE(2) state: (x, y, theta, g, h)
+  map_handler.py                     # Occupancy grid, collision checking, cost fields
+  hybrid_astar/                      # Hybrid A* algorithm
+    hybrid_astar.py                  #   A* search with Reeds-Shepp analytical expansion
+    motion_model.py                  #   Bicycle kinematics, vehicle footprint
+    reeds_shepp.py                   #   48-path Reeds-Shepp curves
+    heuristic.py                     #   Euclidean, Dubins, 2D A*, max heuristics
+    visualizer.py                    #   Matplotlib visualization
+  rrt_star/                          # RRT* family algorithms
+    rrt_star.py                      #   Base RRT* with X_soln re-evaluation
+    informed_rrt_star.py             #   Informed RRT* (ellipsoidal sampling)
+    bi_rrt_star.py                   #   BI-RRT* (bidirectional + pruning + informed)
+    node.py, tree.py                 #   Tree data structures
+    collision_checker.py             #   MapHandler adapter with safety margin
+    steering.py                      #   Straight-line steer function
+    nearest_neighbor.py              #   KD-tree wrapper (scipy.spatial)
+    samplers.py                      #   Uniform, GoalBiased, Informed samplers
+
+config/planner_config.yaml           # All parameters for all algorithms
+maps/                                # Obstacle map images (PNG)
+scripts/                             # RRT* simulation and benchmarking
+ros2_ws/                             # ROS 2 middleware (see below)
+main.py                              # Interactive entry point
+benchmark.py                         # Performance benchmarking
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 
 ```bash
-# Install dependencies
 pip install -r requirements.txt
+```
 
-# Run default scenarios
+Dependencies: `numpy`, `matplotlib`, `Pillow`, `PyYAML`, `scipy`
+
+### Run Interactive Mode
+
+```bash
 python main.py
-
-# Run interactive mode
-python main.py --interactive
 ```
 
-### Basic Usage
+Click on the map to set start/goal, select an algorithm (Hybrid A*, RRT*, Informed RRT*, BI-RRT*), and view results with timing and cost statistics.
 
-```python
-from src import State, MapHandler, MotionModel, VehicleFootprint
-from src import HeuristicCalculator, HybridAStar, Visualizer
-import numpy as np
+### Run Benchmarks
 
-# Load map
-map_handler = MapHandler("maps/map_maze.png", resolution=0.2)
-
-# Setup vehicle
-motion_model = MotionModel(wheel_base=2.5, max_steering_angle=40.0)
-vehicle_footprint = VehicleFootprint(length=4.5, width=2.0)
-
-# Setup heuristic
-heuristic = HeuristicCalculator(map_handler, heuristic_type="max")
-
-# Create planner
-planner = HybridAStar(map_handler, motion_model, vehicle_footprint, heuristic)
-
-# Define start and goal
-start = State(x=10.0, y=10.0, theta=np.radians(0))
-goal = State(x=90.0, y=90.0, theta=np.radians(45))
-
-# Plan path
-result = planner.plan(start, goal)
-
-if result:
-    path, info = result
-    print(f"Path found! Length: {info['path_length']:.2f} m")
+```bash
+python benchmark.py
 ```
 
-## ⚙️ Configuration
+### Run RRT* Simulation (live tree growth)
 
-All parameters are configurable in `config/planner_config.yaml`:
-
-### Map Settings
-- `resolution`: Meters per pixel (default: 0.2)
-- `obstacle_threshold`: Grayscale threshold for obstacles (default: 128)
-
-### Vehicle Parameters
-- `wheel_base`: Distance between axles in meters (default: 2.5)
-- `length`: Total vehicle length (default: 4.5)
-- `width`: Vehicle width (default: 2.0)
-- `rear_axle_to_back`: Rear overhang (default: 1.0)
-
-### Motion Model
-- `max_steering_angle`: Maximum steering in degrees (default: 40)
-- `step_size`: Motion primitive length in meters (default: 0.5)
-- `num_steering_angles`: Discrete steering angles (default: 3)
-- `allow_reverse`: Enable reverse motion (default: true)
-
-### Search Parameters
-- `xy_resolution`: Grid discretization in meters (default: 0.5)
-- `theta_resolution`: Angular discretization in degrees (default: 5)
-- `shot_distance`: Analytical expansion threshold (default: 10.0)
-
-### Cost Parameters
-- `steering_penalty`: Turning cost multiplier (default: 1.5)
-- `reversing_penalty`: Reverse cost multiplier (default: 2.0)
-- `steering_change_penalty`: Direction change penalty (default: 15.0)
-
-### Heuristic Settings
-- `type`: Heuristic type
-  - `"euclidean"`: Fast, least accurate
-  - `"dubins"`: Non-holonomic distance
-  - `"2d_astar"`: With obstacles
-  - `"max"`: Best of both (recommended)
-- `turning_radius`: For Reeds-Shepp paths (default: 5.0)
-
-## 🎯 Key Features
-
-### 1. **State Representation (SE(2))**
-States are represented as (x, y, θ) poses in the configuration space.
-
-### 2. **Kinematic Constraints**
-Uses bicycle model:
-```
-x' = x + d * cos(θ)
-y' = y + d * sin(θ)
-θ' = θ + d/L * tan(φ)
+```bash
+python scripts/rrt_simulation.py --algorithm rrt_star
+python scripts/rrt_simulation.py --algorithm informed_rrt_star
+python scripts/rrt_simulation.py --algorithm bi_rrt_star
+python scripts/rrt_simulation.py --compare
 ```
 
-### 3. **Motion Primitives**
-- Forward/Reverse straight
-- Forward/Reverse left turn
-- Forward/Reverse right turn
+## Algorithm Details
 
-### 4. **Heuristic Functions**
+### Hybrid A*
 
-**Euclidean Distance** (Fast):
-```
-h = sqrt((x_goal - x)² + (y_goal - y)²)
-```
+Graph-based search in SE(2) space using bicycle kinematics.
 
-**Reeds-Shepp Distance** (Non-holonomic):
-- Computes shortest path considering vehicle kinematics
-- Ignores obstacles (admissible)
+- **Cost function**: `f(s) = g(s) + h(s)` with penalties for steering, reversing, and direction changes
+- **Heuristic**: `h = max(Reeds-Shepp distance, cost-aware 2D Dijkstra)` — tight, admissible
+- **Analytical expansion**: When near the goal, attempts direct Reeds-Shepp connection (48 path types)
+- **Vehicle model**: Bicycle kinematics with exact arc geometry
 
-**2D A\*** (With obstacles):
-- Computes shortest holonomic path
-- Considers obstacles (admissible)
+### RRT*
 
-**Max Heuristic** (Recommended):
-```
-h = max(h_reeds_shepp, h_2d_astar)
-```
+Sampling-based asymptotically optimal planner (Karaman & Frazzoli, IJRR 2011).
 
-### 5. **Analytical Expansion**
-When close to goal, attempts direct Reeds-Shepp path:
-- If collision-free → terminate (optimal!)
-- Greatly speeds up search in open areas
+- Maintains X_soln (all goal-reaching nodes) and re-evaluates best cost after every rewire
+- KD-tree nearest neighbors with hybrid buffer for O(log n) queries
+- Convergence detection: stops early when cost plateaus (configurable patience)
 
-### 6. **Collision Checking**
-- Full vehicle footprint checking
-- Dense point sampling for accuracy
-- Bresenham line algorithm for efficiency
+### Informed RRT*
 
-## 📊 Output Format
+Extension of RRT* with focused sampling (Gammell et al., IROS 2014).
 
-### Planning Result
-```python
-path, info = planner.plan(start, goal)
+- Before first solution: goal-biased uniform sampling
+- After first solution: samples from prolate hyperellipsoid containing all potentially improving states
+- Ellipse shrinks as better solutions are found, focusing exploration
 
-# path: List of State objects
-# info: Dictionary with:
-{
-    'success': True/False,
-    'path_length': float,        # meters
-    'nodes_expanded': int,
-    'nodes_visited': int,
-    'search_time': float,        # seconds
-    'analytical': True/False     # if analytical shot succeeded
-}
-```
+### BI-RRT*
 
-### Visualization
-Results are automatically saved to `results/` directory:
-- PNG images with complete planning visualization
-- Vehicle footprints along path
-- Planning statistics overlay
-- Start/goal markers with heading arrows
+Three-phase pipeline (Fan et al., Heliyon 2024).
 
-## 🔧 Advanced Usage
+1. **Bidirectional RRT-Connect**: Two trees grow toward each other for fast initial solution
+2. **Path pruning**: Greedy farthest-visible waypoint skipping
+3. **Informed optimization**: Informed RRT* with pruned cost as initial ellipse bound
 
-### Custom Heuristic
-```python
-from src.heuristic import HeuristicCalculator
+## Configuration
 
-# Fast planning
-heuristic = HeuristicCalculator(map_handler, heuristic_type="euclidean")
+All parameters in `config/planner_config.yaml`:
 
-# Accurate planning
-heuristic = HeuristicCalculator(map_handler, heuristic_type="2d_astar")
+### Vehicle
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `wheel_base` | 2.5 m | Distance between axles |
+| `length` | 4.5 m | Vehicle length |
+| `width` | 2.0 m | Vehicle width |
 
-# Balanced (recommended)
-heuristic = HeuristicCalculator(map_handler, heuristic_type="max")
-```
+### RRT* Family
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `max_iterations` | 10000 | Maximum sampling iterations |
+| `step_size` | 2.0 m | Steer distance |
+| `goal_radius` | 5.0 m | Goal region radius |
+| `goal_bias` | 0.15 | Probability of sampling goal |
+| `gamma` | 20.0 | RGG constant for rewiring radius |
+| `convergence_patience` | 2000 | Stop if no improvement for N iters (0 = disabled) |
 
-### Adjusting Cost Functions
-```python
-# More penalty for turning
-planner = HybridAStar(..., steering_penalty=2.5)
-
-# Heavily penalize reverse
-planner = HybridAStar(..., reversing_penalty=5.0)
-
-# Discourage direction changes
-planner = HybridAStar(..., steering_change_penalty=30.0)
-```
-
-### Different Vehicle Types
-
-**Small car:**
-```yaml
-vehicle:
-  wheel_base: 2.5
-  length: 4.0
-  width: 1.8
-```
-
-**Large truck:**
-```yaml
-vehicle:
-  wheel_base: 4.0
-  length: 8.0
-  width: 2.5
-```
-
-## 📈 Performance Tips
-
-1. **Faster Search**:
-   - Use `heuristic_type: "euclidean"`
-   - Increase `xy_resolution` (coarser grid)
-   - Increase `theta_resolution` (fewer angle bins)
-
-2. **Better Paths**:
-   - Use `heuristic_type: "max"`
-   - Decrease `xy_resolution` (finer grid)
-   - Decrease `theta_resolution` (more angle bins)
-
-3. **Smoother Paths**:
-   - Decrease `step_size`
-   - Increase `num_steering_angles`
-   - Lower `steering_penalty`
-
-## 🐛 Troubleshooting
-
-**No path found:**
-- Check if start/goal are collision-free
-- Increase `shot_distance`
-- Reduce vehicle size
-- Coarsen grid resolution
-
-**Path too rough:**
-- Decrease `step_size`
-- Increase `num_steering_angles`
-- Use smoother heuristic
-
-**Too slow:**
-- Use "euclidean" heuristic
-- Increase `xy_resolution`
-- Decrease `shot_distance`
-
-## 📚 Algorithm Details
-
-### Core Algorithm
-```
-1. Initialize open set with start state
-2. While open set not empty:
-   a. Pop state with lowest f = g + h
-   b. Check goal reached
-   c. Try analytical expansion (Reeds-Shepp shot)
-   d. Expand neighbors using motion primitives
-   e. Prune states with higher cost in same cell
-3. Reconstruct path from goal to start
-```
-
-### Cost Function
-```
-f(state) = g(state) + h(state)
-
-g(state) = accumulated cost from start
-         = sum of motion costs with penalties
-
-h(state) = heuristic estimate to goal
-         = max(h_nonholonomic, h_holonomic)
-```
-
-## 🎓 References
-
-1. **Original Paper**:
-   Dolgov, D., Thrun, S., Montemerlo, M., & Diebel, J. (2010). 
-   "Practical search techniques in path planning for autonomous driving."
-
-2. **Reeds-Shepp Paths**:
-   Reeds, J. A., & Shepp, L. A. (1990). 
-   "Optimal paths for a car that goes both forwards and backwards."
-
-3. **Hybrid A\***:
-   Pivtoraiko, M., Knepper, R. A., & Kelly, A. (2009).
-   "Differentially constrained mobile robot motion planning in state lattices."
+### Hybrid A*
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `xy_resolution` | 1.0 m | Grid cell size |
+| `theta_resolution` | 5.0 deg | Heading discretization |
+| `shot_distance` | 30.0 m | Analytical expansion range |
+| `heuristic.type` | "max" | Heuristic: euclidean, dubins, 2d_astar, max |
 
 ## ROS 2 Integration
 
-The project includes a complete ROS 2 middleware layer in `ros2_ws/` that wraps both Hybrid A\* and RRT\* family planners as independent, pluggable nodes.
+The project includes a complete ROS 2 middleware layer in `ros2_ws/` with 4 packages:
 
-### Supported Algorithms via ROS 2
+| Package | Role |
+|---------|------|
+| `av_planner_interfaces` | PlanPath action + PlanningStats message definitions |
+| `planner_common` | MapAdapter, converters, mock_map_node, path_visualizer_node |
+| `hybrid_astar_planner` | Lifecycle node wrapping Hybrid A* |
+| `rrt_planner` | Lifecycle node wrapping RRT*/Informed RRT*/BI-RRT* |
 
-| Algorithm | Package | Selection |
-|-----------|---------|-----------|
-| Hybrid A\* | `hybrid_astar_planner` | Launch `planner.launch.xml` |
-| RRT\* | `rrt_planner` | `algorithm: rrt_star` |
-| Informed RRT\* | `rrt_planner` | `algorithm: informed_rrt_star` |
-| BI-RRT\* | `rrt_planner` | `algorithm: bi_rrt_star` |
+Both planners serve the same `/plan_path` action topic — swap by launching a different planner. Downstream perception/control nodes work unchanged.
 
-### Quick Start
+### Build & Run
 
 ```bash
 cd ros2_ws
@@ -337,44 +159,33 @@ source /opt/ros/humble/setup.bash
 colcon build --symlink-install
 source install/setup.bash
 
-# Launch Hybrid A*
+# Hybrid A*
 ros2 launch hybrid_astar_planner planner.launch.xml
 
-# OR launch RRT*
+# OR RRT* family
 ros2 launch rrt_planner rrt_planner.launch.xml
 ```
 
-Both planners serve the same `/plan_path` action and publish on `/planned_path`, making them plug-and-play interchangeable for downstream perception/control nodes.
-
-See [`ros2_ws/src/README.md`](ros2_ws/src/README.md) for full documentation including pipeline integration, parameter reference, and lifecycle management.
-
----
-
-## RRT\* Family (Sampling-Based Planners)
-
-In addition to Hybrid A\*, this project implements three RRT\* variants in `src/rrt_star/`:
-
-| Algorithm | Key Feature |
-|-----------|-------------|
-| **RRT\*** | Asymptotically optimal rewiring |
-| **Informed RRT\*** | Ellipsoidal sampling after first solution |
-| **BI-RRT\*** | Bidirectional search + pruning + informed optimization |
+### Visualize Results
 
 ```bash
-# Interactive mode (choose algorithm)
-python main.py
-
-# Real-time tree growth simulation
-python scripts/rrt_simulation.py --algorithm rrt_star
-python scripts/rrt_simulation.py --compare
+ros2 run planner_common path_visualizer_node
 ```
 
----
+### Switch Algorithm (live, no restart)
 
-## 📄 License
+```bash
+ros2 param set /rrt_planner_node algorithm informed_rrt_star
+ros2 param set /rrt_planner_node algorithm bi_rrt_star
+```
 
-MIT License - Feel free to use for research or commercial applications.
+See [ros2_ws/src/README.md](ros2_ws/src/README.md) for full ROS 2 documentation.
+See [Jetson_run.md](Jetson_run.md) for Jetson deployment guide.
 
-## 📧 Contact
+## References
 
-For questions or issues, please open a GitHub issue.
+1. Dolgov et al. (2010). "Practical search techniques in path planning for autonomous driving."
+2. Reeds & Shepp (1990). "Optimal paths for a car that goes both forwards and backwards."
+3. Karaman & Frazzoli (2011). "Sampling-based algorithms for optimal motion planning." IJRR.
+4. Gammell, Srinivasa & Barfoot (2014). "Informed RRT*." IROS.
+5. Fan et al. (2024). "BI-RRT*: An improved path planning algorithm." Heliyon.
